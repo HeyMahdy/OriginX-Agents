@@ -1,11 +1,12 @@
 # workflow.py
-from ...main import app 
 from my_agent.utils.prompts import system_message_01
 from my_agent.utils.tool_nodes import tool_node_01
 from langgraph.graph import StateGraph, START, END
 from my_agent.utils.agent import evidence_agent , SupervisorAgent
+from my_agent.utils.state import state_01
 # Initialize the graph immediately on import
-workflow = StateGraph(state)
+
+workflow = StateGraph(state_01)
 
 workflow.add_node("SupervisorAgent", SupervisorAgent)
 workflow.add_node("evidence_agent", evidence_agent)
