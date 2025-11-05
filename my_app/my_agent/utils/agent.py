@@ -6,7 +6,7 @@ from typing import Any
 from my_agent.utils.state import state_01
 from my_agent.utils.llm_store import get_llm as _get_llm
 
-_model_with_tools = None  # optional cache
+
 
 
 def evidence_agent(state: state_01):
