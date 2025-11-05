@@ -3,8 +3,8 @@ from langchain_core.messages import SystemMessage
 from langchain_core.prompts import MessagesPlaceholder , ChatPromptTemplate
 
 system_message_01 = ChatPromptTemplate.from_messages([
-    ( "system",
-      """
+    ("system",
+     """
     You are a Supervisor AI agent. You have access to two tools:
 1. get_product_movements(product_id, page_size)
    - Returns a list of product movements with the following fields:
@@ -14,9 +14,10 @@ system_message_01 = ChatPromptTemplate.from_messages([
    - Returns a list of blockchain transactions with the following fields:
      txHash, movementId
 
-Task:
+Use this productId for all tool calls: {productId}
 
-1. Call both tools for a given product_id.
+Task:
+1. Call both tools for the given productId.
 2. Compare all txHash values from get_product_transactions:
    - If all txHash are the same, do nothing.
    - If any txHash is different, identify the movementId corresponding to the mismatched txHash.
@@ -30,16 +31,14 @@ Task:
        "from": "Warehouse A",
        "to": "Warehouse B",
        "productName": "Brake Pad X1",
-       "txHash": "0x123abc..."  // the mismatched hash
+       "txHash": "0x123abc..."
    }}
 5. If there are multiple mismatched txHash values, return all mismatches with their corresponding movement info.
 6. If no mismatches exist, return a message: "All transactions match."
-      """
-      ),
-    MessagesPlaceholder(variable_name="agent_scratchpad_01")
-
+     """
+    ),
+    MessagesPlaceholder(variable_name="agent_scratchpad_01"),
 ])
-
 
 
 system_message = ChatPromptTemplate.from_messages ([

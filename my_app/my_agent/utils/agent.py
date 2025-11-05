@@ -15,7 +15,10 @@ def evidence_agent(state: state_01):
         _model_with_tools = _get_llm().bind_tools(tools)
 
     model = system_message_01 | _model_with_tools
-    response = model.invoke({"agent_scratchpad_01": state["messages"]})
+    response = model.invoke({
+        "agent_scratchpad_01": state["messages"],
+        "productId": state["productId"],
+    })
     return {"messages": [response]}
 
 

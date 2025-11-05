@@ -12,6 +12,9 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 from my_agent.utils.workflow import graph
 from my_agent.utils.llm_store import set_llm
+from langchain_core.tracers.context import tracing_v2_enabled
+from langchain_core.messages import AIMessage
+import json
 
 load_dotenv()
 
@@ -87,7 +90,30 @@ async def run_supervisor(payload: dict = Body(...)) -> Any:
             "token": payload.get("token", ""),
         }
 
-        result = await run_in_threadpool(graph.invoke, state)
-        return result
+        with tracing_v2_enabled(project_name=os.environ.get("LANGCHAIN_PROJECT", "report-agent")):
+            result = await run_in_threadpool(
+                graph.invoke,
+                state,
+                config={
+                    "run_name": "ReportAgentGraph",
+                    "metadata": {
+                        "route": "/run",
+                        "orgId": state.get("orgId", ""),
+                        "productId": state.get("productId", ""),
+                    },
+                    "tags": ["fastapi", "report-agent"],
+                },
+            )
+
+        # return only the final AI message content, parsed if it’s JSON
+        msgs = result.get("messages", [])
+        answer = next(
+            (m.content for m in reversed(msgs) if isinstance(m, AIMessage)),
+            msgs[-1].content if msgs else ""
+        )
+        try:
+            return json.loads(answer)
+        except Exception:
+            return {"result": answer}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to run agent: {e}")
