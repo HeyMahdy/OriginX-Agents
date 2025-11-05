@@ -4,11 +4,46 @@ from firebase_admin import db
 from my_agent.utils.service import extract_movement_fields , extract_transaction_fields
 from firebase_admin.exceptions import FirebaseError
 
+MOCK_MOVEMENTS = {
+    "prod_9s8df7": [
+        {"from": "Warehouse A", "to": "Warehouse B", "productName": "Brake Pad X1", "movementId": "move_001"},
+        {"from": "Warehouse B", "to": "Store C",    "productName": "Brake Pad X1", "movementId": "move_002"},
+        {"from": "Store C",    "to": "Customer",    "productName": "Brake Pad X1", "movementId": "move_003"},
+    ],
+    "prod_allmatch": [
+        {"from": "WH1", "to": "WH2",     "productName": "Widget A", "movementId": "move_a1"},
+        {"from": "WH2", "to": "Store Z", "productName": "Widget A", "movementId": "move_a2"},
+    ],
+    "prod_multimismatch": [
+        {"from": "HUB",     "to": "WH-X",     "productName": "Gadget B", "movementId": "move_m1"},
+        {"from": "WH-X",    "to": "Retail-1", "productName": "Gadget B", "movementId": "move_m2"},
+        {"from": "Retail-1","to": "Customer", "productName": "Gadget B", "movementId": "move_m3"},
+    ],
+}
 
-
+MOCK_TRANSACTIONS = {
+    # mismatch on move_003
+    "prod_9s8df7": [
+        {"txHash": "0xabc", "movementId": "move_001"},
+        {"txHash": "0xabc", "movementId": "move_002"},
+        {"txHash": "0xdef", "movementId": "move_003"},
+    ],
+    # all match
+    "prod_allmatch": [
+        {"txHash": "0xaaa", "movementId": "move_a1"},
+        {"txHash": "0xaaa", "movementId": "move_a2"},
+    ],
+    # multi mismatch (m1==m3, m2 different)
+    "prod_multimismatch": [
+        {"txHash": "0x111", "movementId": "move_m1"},
+        {"txHash": "0x222", "movementId": "move_m2"},
+        {"txHash": "0x111", "movementId": "move_m3"},
+    ],
+}
+"""
 @tool
 def get_product_movements(product_id: str, page_size: int = 50):
-    """
+    
     Fetch product movement data from the OriginX API.
 
     This function retrieves all recorded movements for a specific product
@@ -35,7 +70,7 @@ def get_product_movements(product_id: str, page_size: int = 50):
 }
 
    
-    """
+    
     try:
 
         ref = db.reference(f"/api/movements/by-product/{product_id}")
@@ -75,7 +110,8 @@ def get_product_movements(product_id: str, page_size: int = 50):
 
 @tool
 def get_product_transactions(productId: str, page: int = 1, page_size: int = 25):
-    """
+    
+    
     Fetch transaction history for a specific product from the OriginX API.
 
     This function retrieves blockchain transaction records related to a given
@@ -123,7 +159,7 @@ txHash
             "status_code": 401,
             "details": "Missing or invalid API key"
         }
-    """
+    
     try:
         ref = db.reference(f"/api/transactions/{productId}")
         data = ref.get()
@@ -158,8 +194,89 @@ txHash
             "error": "Unexpected error",
             "details": str(e)
         }
+"""
+@tool
+def get_product_movements(product_id: str, page_size: int = 50):
+    """
+    Fetch product movement data from the OriginX API.
 
+    This function retrieves all recorded movements for a specific product
+    using the OriginX internal API key.
 
+    Args:
+        product_id (str): The product ID to filter movements.
+        page_size (int, optional): Maximum number of items to return (default: 50).
+
+    Returns:
+        dict: Parsed JSON response containing product movement records.
+        Example success:
+        {
+  "items": [
+    {
+      "from": "Warehouse A",
+      "to": "Warehouse B",
+      "productName": "Brake Pad X1",
+      "productId": "prod_9s8df7"
+    }
+  ],
+  "total": 1,
+  "pageSize": 50
+}
+    """
+    try:
+        items = MOCK_MOVEMENTS.get(product_id, [])
+        # Keep your existing extractor contract (expects {"items": [...]})
+        payload = {"items": items[:page_size]}
+        return extract_movement_fields(payload)
+    except Exception as e:
+        return {"error": "Unexpected error", "details": str(e)}
+    
+@tool
+def get_product_transactions(productId: str, page: int = 1, page_size: int = 25):
+    """
+    Fetch transaction history for a specific product from the OriginX API.
+
+    This function retrieves blockchain transaction records related to a given
+    product ID using the internal API key (no user token required).
+txHash
+    Args:
+        product_id (str): The product ID to fetch transactions for.
+        page (int, optional): Page number for pagination (default: 1).
+        page_size (int, optional): Maximum number of transactions to return (default: 25).
+
+    Returns:
+        dict: Parsed JSON response containing transaction records.
+
+        Example success:
+        {
+            "items": [
+                {
+                    "txHash": "0x1f3a...",
+                     "movementId" : "24v"
+                }
+            ],
+            "total": 250,
+            "page": 1,
+            "pageSize": 25,
+            "hasMore": true
+        }
+
+        Example error:
+        {
+            "error": "HTTP error occurred",
+            "status_code": 401,
+            "details": "Missing or invalid API key"
+        }
+    """
+    try:
+        items = MOCK_TRANSACTIONS.get(productId, [])
+        start = max((page - 1) * page_size, 0)
+        end = start + page_size
+        payload = {"items": items[start:end]}
+        return extract_transaction_fields(payload)
+    except Exception as e:
+        return {"error": "Unexpected error", "details": str(e)}
+    
 tools = [get_product_movements,get_product_transactions]
 tools_by_name={ tool.name:tool for tool in tools}
         

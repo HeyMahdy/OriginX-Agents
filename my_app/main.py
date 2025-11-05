@@ -2,13 +2,16 @@ import os
 from contextlib import asynccontextmanager
 from typing import Any, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Body
 from fastapi.concurrency import run_in_threadpool
 from pydantic import SecretStr
 import firebase_admin
 from firebase_admin import credentials, db
 from dotenv import load_dotenv; 
 from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage
+from my_agent.utils.workflow import graph
+from my_agent.utils.llm_store import set_llm
 
 load_dotenv()
 
@@ -19,6 +22,7 @@ async def lifespan(app: FastAPI):
         if not firebase_admin._apps:
             cred_path = os.environ.get("FIREBASE_CREDENTIALS_FILE")
             db_url = os.environ.get("FIREBASE_DB_URL")
+            print(cred_path, db_url)
 
             if not cred_path or not db_url:
                 raise RuntimeError("FIREBASE_CREDENTIALS_FILE and FIREBASE_DB_URL must be set")
@@ -30,8 +34,9 @@ async def lifespan(app: FastAPI):
         raise RuntimeError(f"Failed to initialize Firebase: {e}") from e
     try:
         llm = ChatOpenAI(
-            model="gpt-5-nano",
+            model="gpt-4o-mini",
              api_key=SecretStr(os.environ.get("api_key", "")))
+        set_llm(llm)
         app.state.llm = llm  # store in app.state for access elsewhere
     except Exception as e:
         raise RuntimeError(f"Failed to initialize LLM: {e}") from e
@@ -65,3 +70,24 @@ async def read_movements_subpath(subpath: str) -> Any:
         return data if data is not None else {}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to read movements/{subpath}: {e}")
+
+
+@app.post("/run")
+async def run_supervisor(payload: dict = Body(...)) -> Any:
+    try:
+        # Build minimal initial state for the graph
+        input_text = payload.get("input", "Start")
+        state = {
+            "messages": [HumanMessage(content=input_text)],
+            "productId": payload.get("productId", ""),
+            "reason": payload.get("reason", ""),
+            "reporterId": payload.get("reporterId", ""),
+            "orgId": payload.get("orgId", ""),
+            "purchaseDate": payload.get("purchaseDate", ""),
+            "token": payload.get("token", ""),
+        }
+
+        result = await run_in_threadpool(graph.invoke, state)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to run agent: {e}")

@@ -25,13 +25,13 @@ Task:
    - to
    - productName
 4. Return a structured output containing:
-   {
+   {{
        "movementId": "movement_xyz",
        "from": "Warehouse A",
        "to": "Warehouse B",
        "productName": "Brake Pad X1",
        "txHash": "0x123abc..."  // the mismatched hash
-   }
+   }}
 5. If there are multiple mismatched txHash values, return all mismatches with their corresponding movement info.
 6. If no mismatches exist, return a message: "All transactions match."
       """
@@ -46,7 +46,9 @@ system_message = ChatPromptTemplate.from_messages ([
     (
         "system",
         """
-
+       You are the supervisor. you got only one job to do . call the evidence_agent sub agent
+       you give output evidence_agent
+       thats it . thats all you have to do . 
 
         """
     ),

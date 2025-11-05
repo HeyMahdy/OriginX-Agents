@@ -1,17 +1,12 @@
 
-from my_app.main import app
+
 from my_agent.utils.prompts import system_message_01, system_message
 from my_agent.utils.tools import tools
 from typing import Any
 from my_agent.utils.state import state_01
+from my_agent.utils.llm_store import get_llm as _get_llm
+
 _model_with_tools = None  # optional cache
-
-
-def _get_llm():
-    llm = getattr(app.state, "llm", None)
-    if llm is None:
-        raise RuntimeError("LLM not initialized yet; ensure FastAPI lifespan ran")
-    return llm
 
 
 def evidence_agent(state: state_01):
