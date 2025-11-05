@@ -54,3 +54,26 @@ system_message = ChatPromptTemplate.from_messages ([
     MessagesPlaceholder(variable_name="agent_scratchpad")
 
 ])
+
+
+system_message_02 = ChatPromptTemplate.from_messages ([
+    (
+        "system",
+        """
+       You are the agent . you got only one job to do . call the tool named "get_reports"
+       use userId for tool call : {userId}
+       you will get output like this 
+       {{
+
+          "total reports" : 40,
+          "total valid reports " : 30
+    
+       }}
+       you job is to return it . just simply return the output
+       if you get any error while calling this tool . call the tool again 
+
+        """
+    ),
+    MessagesPlaceholder(variable_name="agent_scratchpad_02")
+
+])

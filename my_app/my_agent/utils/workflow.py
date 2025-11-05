@@ -1,8 +1,8 @@
 # workflow.py
 from my_agent.utils.prompts import system_message_01
-from my_agent.utils.tool_nodes import tool_node_01
+from my_agent.utils.tool_nodes import tool_node_01 ,tool_node_02
 from langgraph.graph import StateGraph, START, END
-from my_agent.utils.agent import evidence_agent , SupervisorAgent
+from my_agent.utils.agent import evidence_agent , SupervisorAgent , HistoryAgent
 from my_agent.utils.state import state_01
 # Initialize the graph immediately on import
 
@@ -11,6 +11,8 @@ workflow = StateGraph(state_01)
 workflow.add_node("SupervisorAgent", SupervisorAgent)
 workflow.add_node("evidence_agent", evidence_agent)
 workflow.add_node("tool_node", tool_node_01)
+workflow.add_node("tool_node_01",tool_node_02)
+workflow.add_node("HistoryAgent",HistoryAgent)
 
 
 def route_from_supervisor(state: state_01):
@@ -23,6 +25,13 @@ def route_from_evidence(state: state_01):
     messages = state["messages"]
     last_message = messages[-1]
     return "tools" if getattr(last_message, "tool_calls", None) else "end"
+
+
+
+def route_from_history(state: state_01):
+    messages = state["messages"][-1]
+    return "tool_node_01" if getattr(messages,"tool_calls",None) else "end"
+
 
 
 # Wire graph

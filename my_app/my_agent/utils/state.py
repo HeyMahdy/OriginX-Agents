@@ -17,4 +17,6 @@ class state_01(TypedDict):
     orgId: str                      
     purchaseDate: str
     token: str
+    userId:str
+
 

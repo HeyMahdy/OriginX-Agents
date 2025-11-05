@@ -1,7 +1,7 @@
 from langchain.tools import tool
 import requests
 from firebase_admin import db
-from my_agent.utils.service import extract_movement_fields , extract_transaction_fields
+from my_agent.utils.service import extract_movement_fields , extract_transaction_fields , extract_report_fields
 from firebase_admin.exceptions import FirebaseError
 
 MOCK_MOVEMENTS = {
@@ -22,7 +22,7 @@ MOCK_MOVEMENTS = {
 }
 
 MOCK_TRANSACTIONS = {
-    # mismatch on move_003
+    
     "prod_9s8df7": [
         {"txHash": "0xabc", "movementId": "move_001"},
         {"txHash": "0xabc", "movementId": "move_002"},
@@ -281,3 +281,70 @@ tools = [get_product_movements,get_product_transactions]
 tools_by_name={ tool.name:tool for tool in tools}
         
     
+MOCK_REPORTS = [
+  
+  { "userId": "uid_001", "analysis": { "isAnomalous": "false", "anomalyScore": 12, "riskLevel": "low", "anomalies": [], "confidence": 90, "recommendations": [] }, "scanCount": 110 },
+  { "userId": "uid_001", "analysis": { "isAnomalous": "false", "anomalyScore": 15, "riskLevel": "low", "anomalies": [], "confidence": 88, "recommendations": [] }, "scanCount": 120 },
+  { "userId": "uid_001", "analysis": { "isAnomalous": "false", "anomalyScore": 18, "riskLevel": "low", "anomalies": ["Normal variance"], "confidence": 87, "recommendations": [] }, "scanCount": 132 },
+  { "userId": "uid_001", "analysis": { "isAnomalous": "false", "anomalyScore": 20, "riskLevel": "low", "anomalies": [], "confidence": 85, "recommendations": [] }, "scanCount": 140 },
+  { "userId": "uid_001", "analysis": { "isAnomalous": "true", "anomalyScore": 42, "riskLevel": "medium", "anomalies": ["Scan spike observed"], "confidence": 80, "recommendations": ["Monitor activity"] }, "scanCount": 200 },
+  { "userId": "uid_001", "analysis": { "isAnomalous": "false", "anomalyScore": 19, "riskLevel": "low", "anomalies": [], "confidence": 82, "recommendations": [] }, "scanCount": 150 },
+  { "userId": "uid_001", "analysis": { "isAnomalous": "false", "anomalyScore": 21, "riskLevel": "low", "anomalies": [], "confidence": 84, "recommendations": [] }, "scanCount": 160 },
+  { "userId": "uid_001", "analysis": { "isAnomalous": "true", "anomalyScore": 55, "riskLevel": "medium", "anomalies": ["Irregular timing pattern"], "confidence": 78, "recommendations": ["Review timings"] }, "scanCount": 230 },
+  { "userId": "uid_001", "analysis": { "isAnomalous": "false", "anomalyScore": 14, "riskLevel": "low", "anomalies": [], "confidence": 90, "recommendations": [] }, "scanCount": 95 },
+  { "userId": "uid_001", "analysis": { "isAnomalous": "false", "anomalyScore": 11, "riskLevel": "low", "anomalies": [], "confidence": 91, "recommendations": [] }, "scanCount": 100 },
+  { "userId": "uid_001", "analysis": { "isAnomalous": "true", "anomalyScore": 60, "riskLevel": "medium", "anomalies": ["Repeated scans in short window"], "confidence": 83, "recommendations": ["Investigate"] }, "scanCount": 250 },
+  { "userId": "uid_001", "analysis": { "isAnomalous": "false", "anomalyScore": 16, "riskLevel": "low", "anomalies": [], "confidence": 88, "recommendations": [] }, "scanCount": 145 },
+  { "userId": "uid_001", "analysis": { "isAnomalous": "false", "anomalyScore": 13, "riskLevel": "low", "anomalies": [], "confidence": 89, "recommendations": [] }, "scanCount": 125 },
+  { "userId": "uid_001", "analysis": { "isAnomalous": "true", "anomalyScore": 71, "riskLevel": "high", "anomalies": ["Suspicious continuous scans"], "confidence": 92, "recommendations": ["Flag account"] }, "scanCount": 300 },
+  { "userId": "uid_001", "analysis": { "isAnomalous": "false", "anomalyScore": 17, "riskLevel": "low", "anomalies": ["Normal usage"], "confidence": 86, "recommendations": [] }, "scanCount": 155 },
+  { "userId": "uid_001", "analysis": { "isAnomalous": "false", "anomalyScore": 23, "riskLevel": "low", "anomalies": [], "confidence": 85, "recommendations": [] }, "scanCount": 170 },
+  { "userId": "uid_001", "analysis": { "isAnomalous": "true", "anomalyScore": 52, "riskLevel": "medium", "anomalies": ["Spike and drop pattern"], "confidence": 81, "recommendations": ["Monitor next week"] }, "scanCount": 225 },
+  { "userId": "uid_001", "analysis": { "isAnomalous": "false", "anomalyScore": 19, "riskLevel": "low", "anomalies": [], "confidence": 87, "recommendations": [] }, "scanCount": 135 },
+  { "userId": "uid_001", "analysis": { "isAnomalous": "false", "anomalyScore": 22, "riskLevel": "low", "anomalies": [], "confidence": 84, "recommendations": [] }, "scanCount": 165 },
+  { "userId": "uid_001", "analysis": { "isAnomalous": "true", "anomalyScore": 65, "riskLevel": "high", "anomalies": ["Behavior deviation"], "confidence": 89, "recommendations": ["Immediate review"] }, "scanCount": 290 },
+
+
+]
+
+@tool
+def get_reports(userId: str, page: int = 1, page_size: int = 25):
+    """
+    Fetch user report history for a specific users.
+
+    This function retrieves user reports records related to a given
+    user ID using the internal API key (no user token required).
+txHash
+    Args:
+        userId (str): The user ID to fetch report .
+        page (int, optional): Page number for pagination (default: 1).
+        page_size (int, optional): Maximum number of reports to return (default: 25).
+
+    Returns:
+        dict: Parsed JSON response containing report records.
+
+        Example success:
+        {
+          "total reports" : 40,
+          "total valid reports " : 30
+        }
+
+        Example error:
+        {
+            "error": "HTTP error occurred",
+            "status_code": 401,
+            "details": "Missing or invalid API key"
+        }
+    """
+    try:
+        payload = MOCK_REPORTS
+        return extract_report_fields(payload,userId)
+    except Exception as e:
+        return {"error": "Unexpected error", "details": str(e)}
+    
+tools = [get_product_movements,get_product_transactions]
+tools_by_name={ tool.name:tool for tool in tools}
+
+
+tools_01 = [get_reports]
+tools_by_name_01 = {tool.name: tools for tools in tools_01}

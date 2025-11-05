@@ -28,3 +28,27 @@ def extract_transaction_fields(payload: Any):
             result.append(filtered)
 
     return result
+
+
+def extract_report_fields(payload:Any,userId:str):
+    total = 0
+    valid = 0
+    for item in payload:
+        if item["userId"] == userId:
+            total = total + 1
+            if item["analysis"]["riskLevel"] == "low":
+                valid = valid + 1
+        
+        return [
+            {
+               "total reports" : total,
+               "total valid reports " : valid
+            }
+        ]
+        
+
+            
+
+
+
+
